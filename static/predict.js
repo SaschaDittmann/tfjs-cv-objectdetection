@@ -2,8 +2,9 @@ $("#image-selector").change(function () {
 	let reader = new FileReader();
 	reader.onload = function () {
 		let dataURL = reader.result;
-		$("#selected-image").attr("src", dataURL);
+		$("#selectedImage").attr("src", dataURL);
 		$("#prediction-list").empty();
+		removeHighlights();
 	}
 	
 	let file = $("#image-selector").prop('files')[0];
@@ -31,7 +32,7 @@ function _logistic(x) {
 }
 
 function loadImage() {
-	const pixels = $('#selected-image').get(0);
+	const pixels = $('#selectedImage').get(0);
 	
 	// Pre-process the image
 	console.log( "Loading image..." );
@@ -103,51 +104,49 @@ async function predictLogos(inputs) {
 }
 
 var children = [];
-function drawResults() {
-  // Now let's start classifying a frame in the stream.
-  model.detect(video).then(function (predictions) {
-    // Remove any highlighting we did previous frame.
-    for (let i = 0; i < children.length; i++) {
-      liveView.removeChild(children[i]);
-    }
-    children.splice(0);
+function removeHighlights() {
+	for (let i = 0; i < children.length; i++) {
+		imageOverlay.removeChild(children[i]);
+	}
+	children = [];
+}
+function highlightResults(predictions) {
+	console.log( "Highlighting results..." );
+	
+	removeHighlights();
     
-    // Now lets loop through predictions and draw them to the live view if
-    // they have a high confidence score.
-    for (let n = 0; n < predictions.length; n++) {
-      // If we are over 66% sure we are sure we classified it right, draw it!
-      if (predictions[n].score > 0.66) {
-        const p = document.createElement('p');
-        p.innerText = predictions[n].class  + ' - with ' 
-            + Math.round(parseFloat(predictions[n].score) * 100) 
-            + '% confidence.';
-        p.style = 'margin-left: ' + predictions[n].bbox[0] + 'px; margin-top: '
-            + (predictions[n].bbox[1] - 10) + 'px; width: ' 
-            + (predictions[n].bbox[2] - 10) + 'px; top: 0; left: 0;';
-
-        const highlighter = document.createElement('div');
-        highlighter.setAttribute('class', 'highlighter');
-        highlighter.style = 'left: ' + predictions[n].bbox[0] + 'px; top: '
-            + predictions[n].bbox[1] + 'px; width: ' 
-            + predictions[n].bbox[2] + 'px; height: '
-            + predictions[n].bbox[3] + 'px;';
-
-        liveView.appendChild(highlighter);
-        liveView.appendChild(p);
-        children.push(highlighter);
-        children.push(p);
-      }
+    for (let n = 0; n < predictions[0].length; n++) {
+		// Check scores
+		if (predictions[1][n] > 0.66) {
+			const p = document.createElement('p');
+			p.innerText = TARGET_CLASSES[predictions[2][n]]  + ': ' 
+				+ Math.round(parseFloat(predictions[1][n]) * 100) 
+				+ '%';
+			
+			bboxLeft = (predictions[0][n][0] * selectedImage.width) + 10;
+			bboxTop = (predictions[0][n][1] * selectedImage.height) - 10;
+			bboxWidth = (predictions[0][n][2] * selectedImage.width) - bboxLeft + 20;
+			bboxHeight = (predictions[0][n][3] * selectedImage.height) - bboxTop + 10;
+			
+			p.style = 'margin-left: ' + bboxLeft + 'px; margin-top: '
+				+ (bboxTop - 10) + 'px; width: ' 
+				+ bboxWidth + 'px; top: 0; left: 0;';
+			const highlighter = document.createElement('div');
+			highlighter.setAttribute('class', 'highlighter');
+			highlighter.style = 'left: ' + bboxLeft + 'px; top: '
+				+ bboxTop + 'px; width: ' 
+				+ bboxWidth + 'px; height: '
+				+ bboxHeight + 'px;';
+			imageOverlay.appendChild(highlighter);
+			imageOverlay.appendChild(p);
+			children.push(highlighter);
+			children.push(p);
+		}
     }
-    
-    // Call this function again to keep predicting when the browser is ready.
-    window.requestAnimationFrame(predictWebcam);
-  });
 }
 
 $("#predict-button").click(async function () {
 	const image = loadImage();
 	const predictions = await predictLogos(image);
-
-	// TODO: Draw Bounding Boxes
-	console.log(predictions);
+	highlightResults(predictions);
 });
