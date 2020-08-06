@@ -1,10 +1,12 @@
+let imageLoaded = false;
 $("#image-selector").change(function () {
+	imageLoaded = false;
 	let reader = new FileReader();
 	reader.onload = function () {
 		let dataURL = reader.result;
 		$("#selectedImage").attr("src", dataURL);
-		$("#prediction-list").empty();
 		removeHighlights();
+		imageLoaded = true;
 	}
 	
 	let file = $("#image-selector").prop('files')[0];
@@ -13,13 +15,17 @@ $("#image-selector").change(function () {
 
 let model;
 let is_new_od_model;
+let modelLoaded = false;
 $( document ).ready(async function () {
+	modelLoaded = false;
+	$('.progress-bar').html("Loading Model");
 	$('.progress-bar').show();
     console.log( "Loading model..." );
 	model = await tf.loadGraphModel('model/model.json');
 	is_new_od_model = model.inputs.length == 3;
 	console.log( "Model loaded." );
 	$('.progress-bar').hide();
+	modelLoaded = true;
 });
 
 function _logistic(x) {
@@ -36,6 +42,7 @@ function loadImage() {
 	
 	// Pre-process the image
 	console.log( "Loading image..." );
+	$('.progress-bar').html("Preprocessing image");
 	const input_size = model.inputs[0].shape[1];
 	let image = tf.browser.fromPixels(pixels, 3);
 	image = tf.image.resizeBilinear(image.expandDims().toFloat(), [input_size, input_size]);
@@ -51,6 +58,7 @@ const ANCHORS = [0.573, 0.677, 1.87, 2.06, 3.34, 5.47, 7.88, 3.53, 9.77, 9.17];
 const NEW_OD_OUTPUT_TENSORS = ['detected_boxes', 'detected_scores', 'detected_classes'];
 async function predictLogos(inputs) {
 	console.log( "Running predictions..." );
+	$('.progress-bar').html("Running predictions");
 	const outputs = await model.executeAsync(inputs, is_new_od_model ? NEW_OD_OUTPUT_TENSORS : null);
 	const arrays = !Array.isArray(outputs) ? outputs.array() : Promise.all(outputs.map(t => t.array()));
 	let predictions = await arrays;
@@ -112,7 +120,8 @@ function removeHighlights() {
 }
 function highlightResults(predictions) {
 	console.log( "Highlighting results..." );
-	
+	$('.progress-bar').html("Highlighting results");
+
 	removeHighlights();
     
     for (let n = 0; n < predictions[0].length; n++) {
@@ -146,7 +155,14 @@ function highlightResults(predictions) {
 }
 
 $("#predict-button").click(async function () {
+	if (!modelLoaded) { alert("The model must be loaded first"); return; }
+	if (!imageLoaded) { alert("Please select an image first"); return; }
+	$('.progress-bar').html("Starting prediction");
+	$('.progress-bar').show();
+
 	const image = loadImage();
 	const predictions = await predictLogos(image);
 	highlightResults(predictions);
+
+	$('.progress-bar').hide();
 });
