@@ -1,0 +1,12 @@
+node_modules
+.vscode/settings.json
+dist*
+.cache
+yarn-error.log
+*.tgz
+*-ubyte
+*.pyc
+.yalc
+.DS_STORE
+yalc.lock
+*.png
