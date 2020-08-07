@@ -15,7 +15,7 @@ $("#image-selector").change(function () {
 
 function showProgress(percentage) {
 	var pct = Math.floor(percentage*100.0);
-	$('.progress-bar').css('width', `${pct}%`);
+	$('.progress-bar').html(`Loading Model (${pct}%)`);
 	console.log(`${pct}% loaded`);
 }
 
