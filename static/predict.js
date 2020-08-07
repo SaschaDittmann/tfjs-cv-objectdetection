@@ -13,6 +13,12 @@ $("#image-selector").change(function () {
 	reader.readAsDataURL(file);
 });
 
+function showProgress(percentage) {
+	var pct = Math.floor(percentage*100.0);
+	$('.progress-bar').css('width', `${pct}%`);
+	console.log(`${pct}% loaded`);
+}
+
 let model;
 let is_new_od_model;
 let modelLoaded = false;
@@ -21,7 +27,7 @@ $( document ).ready(async function () {
 	$('.progress-bar').html("Loading Model");
 	$('.progress-bar').show();
     console.log( "Loading model..." );
-	model = await tf.loadGraphModel('model/model.json');
+	model = await tf.loadGraphModel('model/model.json', {onProgress: showProgress});
 	is_new_od_model = model.inputs.length == 3;
 	console.log( "Model loaded." );
 	$('.progress-bar').hide();
