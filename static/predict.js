@@ -43,12 +43,13 @@ function _logistic(x) {
 	}
 }
 
-function loadImage() {
-	const pixels = $('#selectedImage').get(0);
+async function loadImage(onProgress) {
+	console.log( "Pre-processing image..." );
+	await $('.progress-bar').html("Pre-processing image").promise();
 	
+	const pixels = $('#selectedImage').get(0);
+		
 	// Pre-process the image
-	console.log( "Loading image..." );
-	$('.progress-bar').html("Preprocessing image");
 	const input_size = model.inputs[0].shape[1];
 	let image = tf.browser.fromPixels(pixels, 3);
 	image = tf.image.resizeBilinear(image.expandDims().toFloat(), [input_size, input_size]);
@@ -64,7 +65,7 @@ const ANCHORS = [0.573, 0.677, 1.87, 2.06, 3.34, 5.47, 7.88, 3.53, 9.77, 9.17];
 const NEW_OD_OUTPUT_TENSORS = ['detected_boxes', 'detected_scores', 'detected_classes'];
 async function predictLogos(inputs) {
 	console.log( "Running predictions..." );
-	$('.progress-bar').html("Running predictions");
+	await $('.progress-bar').html("Running predictions").promise();
 	const outputs = await model.executeAsync(inputs, is_new_od_model ? NEW_OD_OUTPUT_TENSORS : null);
 	const arrays = !Array.isArray(outputs) ? outputs.array() : Promise.all(outputs.map(t => t.array()));
 	let predictions = await arrays;
@@ -72,6 +73,7 @@ async function predictLogos(inputs) {
 	// Post processing for old models.
 	if (predictions.length != 3) {
 		console.log( "Post processing..." );
+		await $('.progress-bar').html("Post-processing V1 model").promise();
 	    const num_anchor = ANCHORS.length / 2;
 		const channels = predictions[0][0][0].length;
 		const height = predictions[0].length;
@@ -124,13 +126,13 @@ function removeHighlights() {
 	}
 	children = [];
 }
-function highlightResults(predictions) {
+async function highlightResults(predictions) {
 	console.log( "Highlighting results..." );
-	$('.progress-bar').html("Highlighting results");
+	await $('.progress-bar').html("Highlighting results").promise();
 
 	removeHighlights();
-    
-    for (let n = 0; n < predictions[0].length; n++) {
+	
+	for (let n = 0; n < predictions[0].length; n++) {
 		// Check scores
 		if (predictions[1][n] > 0.66) {
 			const p = document.createElement('p');
@@ -157,7 +159,7 @@ function highlightResults(predictions) {
 			children.push(highlighter);
 			children.push(p);
 		}
-    }
+	}
 }
 
 $("#predict-button").click(async function () {
@@ -166,9 +168,9 @@ $("#predict-button").click(async function () {
 	$('.progress-bar').html("Starting prediction");
 	$('.progress-bar').show();
 
-	const image = loadImage();
+	const image = await loadImage();
 	const predictions = await predictLogos(image);
-	highlightResults(predictions);
+	await highlightResults(predictions);
 
 	$('.progress-bar').hide();
 });
