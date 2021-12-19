@@ -53,9 +53,9 @@ async function loadImage(onProgress) {
 	const input_size = model.inputs[0].shape[1];
 	let image = tf.browser.fromPixels(pixels, 3);
 	image = tf.image.resizeBilinear(image.expandDims().toFloat(), [input_size, input_size]);
+	image = is_new_od_model ? image : image.reverse(-1); // RGB->BGR for old models
 	if (is_new_od_model) {
 		console.log( "Object Detection Model V2 detected." );
-		image = is_new_od_model ? image : image.reverse(-1); // RGB->BGR for old models
 	}
 
 	return image;
